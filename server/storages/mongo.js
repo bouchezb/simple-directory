@@ -50,11 +50,12 @@ class MongodbStorage {
     await ensureIndex(this.db, 'users', { email: 1 }, { unique: true, collation })
     await ensureIndex(this.db, 'users', { 'organizations.id': 1 }, { sparse: true })
     await ensureIndex(this.db, 'invitations', { email: 1, id: 1 }, { unique: true })
+    await ensureIndex(this.db, 'avatars', { 'owner.type': 1, 'owner.id': 1 }, { unique: true })
     return this
   }
 
   async getUser(filter) {
-    if (filter.id) {
+    if ('id' in filter) {
       filter._id = filter.id
       delete filter.id
     }
@@ -87,7 +88,11 @@ class MongodbStorage {
 
   async patchUser(id, patch, byUser) {
     if (byUser) patch.updated = { id: byUser.id, name: byUser.name, date: new Date() }
-    const mongoRes = await this.db.collection('users').findOneAndUpdate({ _id: id }, { $set: patch })
+    const mongoRes = await this.db.collection('users').findOneAndUpdate(
+      { _id: id },
+      { $set: patch },
+      { returnOriginal: false }
+    )
     const user = cleanResource(mongoRes.value)
     // "name" was modified, also update all references in created and updated events
     if (patch.name) {
@@ -134,14 +139,17 @@ class MongodbStorage {
 
   async findMembers(organizationId, params = {}) {
     const filter = { 'organizations': { $elemMatch: { id: organizationId } } }
-    if (params.ids) {
+    if (params.ids && params.ids.length) {
       filter._id = { $in: params.ids }
     }
     if (params.q) {
       filter.name = { $regex: params.q, $options: 'i' }
     }
-    if (params.role) {
-      filter.organizations.$elemMatch.role = params.role
+    if (params.roles && params.roles.length) {
+      filter.organizations.$elemMatch.role = { $in: params.roles }
+    }
+    if (params.departments && params.departments.length) {
+      filter.organizations.$elemMatch.department = { $in: params.departments }
     }
     const countPromise = this.db.collection('users').count(filter)
     const users = await this.db.collection('users')
@@ -154,7 +162,8 @@ class MongodbStorage {
     return {
       count,
       results: users.map(user => {
-        return { id: user._id, name: user.name, email: user.email, role: user.organizations.find(o => o.id === organizationId).role }
+        const userOrga = user.organizations.find(o => o.id === organizationId)
+        return { id: user._id, name: user.name, email: user.email, role: userOrga.role, department: userOrga.department }
       })
     }
   }
@@ -176,7 +185,11 @@ class MongodbStorage {
 
   async patchOrganization(id, patch, user) {
     patch.updated = { id: user.id, name: user.name, date: new Date() }
-    const mongoRes = await this.db.collection('organizations').findOneAndUpdate({ _id: id }, { $set: patch })
+    const mongoRes = await this.db.collection('organizations').findOneAndUpdate(
+      { _id: id },
+      { $set: patch },
+      { returnOriginal: false }
+    )
     const orga = cleanResource(mongoRes.value)
     // "name" was modified, also update all organizations references in users
     if (patch.name) {
@@ -215,6 +228,7 @@ class MongodbStorage {
     const countPromise = this.db.collection('organizations').count(filter)
     const organizations = await this.db.collection('organizations')
       .find(filter)
+      .sort(params.sort)
       .project(prepareSelect(params.select))
       .skip(params.skip)
       .limit(params.size)
@@ -223,23 +237,37 @@ class MongodbStorage {
     return { count, results: organizations.map(cleanResource) }
   }
 
-  async addMember(orga, user, role) {
+  async addMember(orga, user, role, department) {
     await this.db.collection('users').updateOne(
       { _id: user.id },
-      { $push: { organizations: { id: orga.id, name: orga.name, role } } }
+      { $push: { organizations: { id: orga.id, name: orga.name, role, department } } }
     )
   }
 
-  async setMemberRole(organizationId, userId, role) {
+  async setMemberRole(organizationId, userId, role, department) {
     await this.db.collection('users').updateOne(
       { _id: userId, 'organizations.id': organizationId },
-      { $set: { 'organizations.$.role': role } }
+      { $set: { 'organizations.$.role': role, 'organizations.$.department': department } }
     )
   }
 
   async removeMember(organizationId, userId) {
     await this.db.collection('users')
       .updateOne({ _id: userId }, { $pull: { organizations: { id: organizationId } } })
+  }
+
+  async setAvatar(avatar) {
+    await this.db.collection('avatars').replaceOne(
+      { 'owner.type': avatar.owner.type, 'owner.id': avatar.owner.id },
+      avatar,
+      { upsert: true }
+    )
+  }
+
+  async getAvatar(owner) {
+    const avatar = await this.db.collection('avatars').findOne({ 'owner.type': owner.type, 'owner.id': owner.id })
+    if (avatar && avatar.buffer) avatar.buffer = avatar.buffer.buffer
+    return avatar
   }
 }
 

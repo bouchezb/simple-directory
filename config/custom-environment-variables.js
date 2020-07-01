@@ -67,6 +67,12 @@ module.exports = {
     cssUrl: 'THEME_CSS_URL',
     cssText: 'THEME_CSS_TEXT'
   },
+  i18n: {
+    locales: {
+      __name: 'I18N_LOCALES',
+      __format: 'json'
+    }
+  },
   mails: {
     transport: {
       __name: 'MAILS_TRANSPORT',
@@ -82,13 +88,6 @@ module.exports = {
     },
     smtp: 'MAILDEV_SMTP',
     web: 'MAILDEV_WEB'
-  },
-  i18n: {
-    defaultLocale: 'I18N_DEFAULT_LOCALE',
-    locales: {
-      __name: 'I18N_LOCALES',
-      __format: 'json'
-    }
   },
   quotas: {
     defaultMaxCreatedOrgs: {
@@ -114,9 +113,49 @@ module.exports = {
     __name: 'NO_UI',
     __format: 'json'
   },
-  prebuilt: {
-    __name: 'PREBUILT',
+  tosUrl: 'TOS_URL',
+  manageDepartments: {
+    __name: 'MANAGE_DEPARTMENTS',
     __format: 'json'
   },
-  tosUrl: 'TOS_URL'
+  manageDepartmentLabel: {
+    __name: 'MANAGE_DEPARTMENT_LABEL',
+    __format: 'json'
+  },
+  passwordless: {
+    __name: 'PASSWORDLESS',
+    __format: 'json'
+  },
+  authRateLimit: {
+    attempts: {
+      __name: 'AUTHRATELIMIT_ATTEMPTS',
+      __format: 'json'
+    },
+    duration: {
+      __name: 'AUTHRATELIMIT_DURATION',
+      __format: 'json'
+    }
+  },
+  oauth: {
+    providers: {
+      __name: 'OAUTH_PROVIDERS',
+      __format: 'json'
+    },
+    github: {
+      id: 'OAUTH_GITHUB_ID',
+      secret: 'OAUTH_GITHUB_SECRET'
+    },
+    facebook: {
+      id: 'OAUTH_FACEBOOK_ID',
+      secret: 'OAUTH_FACEBOOK_SECRET'
+    },
+    google: {
+      id: 'OAUTH_GOOGLE_ID',
+      secret: 'OAUTH_GOOGLE_SECRET'
+    },
+    linkedin: {
+      id: 'OAUTH_LINKEDIN_ID',
+      secret: 'OAUTH_LINKEDIN_SECRET'
+    }
+  }
 }

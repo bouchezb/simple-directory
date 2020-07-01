@@ -35,7 +35,7 @@ router.get('', asyncWrap(async (req, res, next) => {
   res.json(users)
 }))
 
-const createKeys = ['firstName', 'lastName', 'email', 'password']
+const createKeys = ['firstName', 'lastName', 'email', 'password', 'birthday']
 router.post('', asyncWrap(async (req, res, next) => {
   if (!req.body || !req.body.email) return res.status(400).send(req.messages.errors.badEmail)
   if (!emailValidator.validate(req.body.email)) return res.status(400).send(req.messages.errors.badEmail)
@@ -43,26 +43,6 @@ router.post('', asyncWrap(async (req, res, next) => {
   if (invalidKey) return res.status(400).send(`Attribute ${invalidKey} is not accepted`)
 
   const storage = req.app.get('storage')
-
-  // email is already taken, send a conflict email
-  const user = await req.app.get('storage').getUser({ email: req.body.email })
-  if (user && user.emailConfirmed !== false) {
-    const link = req.query.redirect || config.defaultLoginRedirect || config.publicUrl
-    const linkUrl = new URL(link)
-    await mails.send({
-      transport: req.app.get('mailTransport'),
-      key: 'conflict',
-      messages: req.messages,
-      to: req.body.email,
-      params: { host: linkUrl.host, origin: linkUrl.origin }
-    })
-    return res.status(204).send()
-  }
-
-  // Re-create a user that was never validated.. first clean temporary user
-  if (user && user.emailConfirmed === false) {
-    await storage.deleteUser(user.id)
-  }
 
   // create user
   const newUser = {
@@ -80,6 +60,26 @@ router.post('', asyncWrap(async (req, res, next) => {
       return res.status(400).send(req.messages.errors.malformedPassword)
     }
     newUser.password = await passwords.hashPassword(req.body.password)
+  }
+
+  // email is already taken, send a conflict email
+  const user = await req.app.get('storage').getUserByEmail(req.body.email)
+  if (user && user.emailConfirmed !== false) {
+    const link = req.query.redirect || config.defaultLoginRedirect || config.publicUrl
+    const linkUrl = new URL(link)
+    await mails.send({
+      transport: req.app.get('mailTransport'),
+      key: 'conflict',
+      messages: req.messages,
+      to: req.body.email,
+      params: { host: linkUrl.host, origin: linkUrl.origin }
+    })
+    return res.status(204).send()
+  }
+
+  // Re-create a user that was never validated.. first clean temporary user
+  if (user && user.emailConfirmed === false) {
+    await storage.deleteUser(user.id)
   }
 
   await storage.createUser(newUser)
@@ -106,11 +106,12 @@ router.get('/:userId', asyncWrap(async (req, res, next) => {
   const user = await req.app.get('storage').getUser({ id: req.params.userId })
   if (!user) return res.status(404).send()
   user.isAdmin = config.admins.includes(user.email)
+  user.avatarUrl = config.publicUrl + '/api/avatars/user/' + user.id + '/avatar.png'
   res.json(user)
 }))
 
 // Update some parts of a user as himself
-const patchKeys = ['firstName', 'lastName']
+const patchKeys = ['firstName', 'lastName', 'birthday']
 const adminKeys = ['maxCreatedOrgs']
 router.patch('/:userId', asyncWrap(async (req, res, next) => {
   if (!req.user) return res.status(401).send()
@@ -125,9 +126,10 @@ router.patch('/:userId', asyncWrap(async (req, res, next) => {
   const name = userName({ ...req.user, ...patch }, true)
   if (name !== req.user.name) {
     patch.name = name
-    webhooks.sendUsersWebhooks([{ ...req.user, ...patch }])
+    webhooks.postIdentity('user', { ...req.user, ...patch })
   }
   const patchedUser = await req.app.get('storage').patchUser(req.params.userId, patch, req.user)
+  patchedUser.avatarUrl = config.publicUrl + '/api/avatars/user/' + patchedUser.id + '/avatar.png'
   res.send(patchedUser)
 }))
 
@@ -136,6 +138,7 @@ router.delete('/:userId', asyncWrap(async (req, res, next) => {
   if (!req.user) return res.status(401).send()
   if (!req.user.isAdmin) return res.status(403).send(req.messages.errors.permissionDenied)
   await req.app.get('storage').deleteUser(req.params.userId)
+  webhooks.deleteIdentity('user', req.params.userId)
   res.status(204).send()
 }))
 

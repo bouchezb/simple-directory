@@ -6,3 +6,6 @@
 /public/pages/doc
 /security
 *.swp
+/nuxt-dist
+config/local.js
+config/local.json

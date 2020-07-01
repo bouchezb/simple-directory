@@ -54,6 +54,7 @@ router.get('/:organizationId', asyncWrap(async (req, res, next) => {
   }
   const orga = await req.app.get('storage').getOrganization(req.params.organizationId)
   orga.roles = orga.roles || config.roles.defaults
+  orga.avatarUrl = config.publicUrl + '/api/avatars/organization/' + orga.id + '/avatar.png'
   res.send(orga)
 }))
 
@@ -83,13 +84,14 @@ router.post('', asyncWrap(async (req, res, next) => {
   const orga = req.body
   orga.id = orga.id || shortid.generate()
   await storage.createOrganization(orga, req.user)
-  await storage.addMember(orga, req.user, 'admin')
-  webhooks.sendOrganizationsWebhooks([orga])
+  if (!req.user.isAdmin || req.query.autoAdmin !== 'false') await storage.addMember(orga, req.user, 'admin')
+  webhooks.postIdentity('organization', orga)
+  orga.avatarUrl = config.publicUrl + '/api/avatars/organization/' + orga.id + '/avatar.png'
   res.status(201).send(orga)
 }))
 
 // Update some parts of an organization as admin of it
-const patchKeys = ['name', 'description']
+const patchKeys = ['name', 'description', 'departments', 'departmentLabel']
 router.patch('/:organizationId', asyncWrap(async (req, res, next) => {
   if (!req.user) return res.status(401).send()
   // Only allowed for the organizations that the user is admin of
@@ -100,7 +102,8 @@ router.patch('/:organizationId', asyncWrap(async (req, res, next) => {
   const forbiddenKey = Object.keys(req.body).find(key => !patchKeys.includes(key))
   if (forbiddenKey) return res.status(400).send('Only some parts of the organization can be modified through this route')
   const patchedOrga = await req.app.get('storage').patchOrganization(req.params.organizationId, req.body, req.user)
-  if (req.body.name) webhooks.sendOrganizationsWebhooks([patchedOrga])
+  webhooks.postIdentity('organization', patchedOrga)
+  patchedOrga.avatarUrl = config.publicUrl + '/api/avatars/organization/' + patchedOrga.id + '/avatar.png'
   res.send(patchedOrga)
 }))
 
@@ -113,7 +116,9 @@ router.get('/:organizationId/members', asyncWrap(async (req, res, next) => {
   }
   const params = { ...findUtils.pagination(req.query), sort: findUtils.sort(req.query.sort) }
   if (req.query.q) params.q = req.query.q
-  if (req.query['ids']) params.ids = req.query['ids'].split(',')
+  if (req.query['ids'] || req.query['id']) params.ids = (req.query['ids'] || req.query['id']).split(',')
+  if (req.query.role) params.roles = req.query.role.split(',')
+  if (req.query.department) params.departments = req.query.department.split(',')
   const members = await req.app.get('storage').findMembers(req.params.organizationId, params)
   res.send(members)
 }))
@@ -140,14 +145,17 @@ router.patch('/:organizationId/members/:userId', asyncWrap(async (req, res, next
   if (!orga) return res.status(404).send()
   const roles = orga.roles || config.roles.defaults
   if (!roles.includes(req.body.role)) return res.status(400).send(req.messages.errors.replace('{role}', req.body.role))
-  await req.app.get('storage').setMemberRole(req.params.organizationId, req.params.userId, req.body.role)
+  await req.app.get('storage').setMemberRole(req.params.organizationId, req.params.userId, req.body.role, req.body.department)
   res.status(204).send()
 }))
 
-// Only super admin can delete an organization for now
+// Super admin and orga admin can delete an organization for now
 router.delete('/:organizationId', asyncWrap(async (req, res, next) => {
   if (!req.user) return res.status(401).send()
-  if (!req.user.isAdmin) return res.status(403).send(req.messages.errors.permissionDenied)
+  if (!isAdmin(req)) return res.status(403).send(req.messages.errors.permissionDenied)
+  const { count } = await req.app.get('storage').findMembers(req.params.organizationId, { size: 0, skip: 0 })
+  if (count > 1) return res.status(400).send(req.messages.errors.nonEmptyOrganization)
   await req.app.get('storage').deleteOrganization(req.params.organizationId)
+  webhooks.deleteIdentity('organization', req.params.organizationId)
   res.status(204).send()
 }))

@@ -13,9 +13,9 @@ function getUserOrgas(organizations, user) {
   return organizations
     .filter(orga => orga.members.find(member => member.id === user.id))
     .map(orga => ({
+      ...orga.members.find(m => m.id === user.id),
       id: orga.id,
-      name: orga.name,
-      role: orga.members.find(m => m.id === user.id).role
+      name: orga.name
     }))
 }
 
@@ -35,6 +35,10 @@ class FileStorage {
       user.name = userName(user)
     })
     this.organizations = JSON.parse(await readFile(path.resolve(__dirname, '../..', params.organizations), 'utf-8'))
+    this.organizations.forEach(orga => {
+      orga.members = orga.members || []
+      orga.departments = orga.departments || []
+    })
     return this
   }
 
@@ -98,11 +102,14 @@ class FileStorage {
       const lq = params.q.toLowerCase()
       members = members.filter(member => member.name.toLowerCase().indexOf(lq) >= 0)
     }
-    if (params.ids) {
-      members = members.filter(member => (params.ids).find(id => member.id === id))
+    if (params.ids && params.ids.length) {
+      members = members.filter(member => params.ids.includes(member.id))
     }
-    if (params.role) {
-      members = members.filter(member => member.role === params.role)
+    if (params.roles && params.roles.length) {
+      members = members.filter(member => params.roles.includes(member.role))
+    }
+    if (params.departments && params.departments.length) {
+      members = members.filter(member => params.departments.includes(member.department))
     }
     return {
       count: members.length,

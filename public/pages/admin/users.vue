@@ -18,7 +18,7 @@
         name="search"
         solo
         style="max-width:300px;"
-        append-icon="search"
+        append-icon="mdi-magnify"
         @click:append="fetchUsers"
         @keyup.enter="fetchUsers"/>
     </v-layout>
@@ -36,6 +36,9 @@
       rows-per-page-text=""
     >
       <template slot="items" slot-scope="props">
+        <td>
+          <v-avatar :size="40"><img :src="env.publicUrl + '/api/avatars/user/' + props.item.id + '/avatar.png'"></v-avatar>
+        </td>
         <td>{{ props.item.email }}</td>
         <td>{{ props.item.id }}</td>
         <td>{{ props.item.firstName }}</td>
@@ -47,7 +50,7 @@
         <td v-if="env.defaultMaxCreatedOrgs !== -1">
           <span>{{ props.item.maxCreatedOrgs }}</span>
           <v-btn v-if="env.defaultMaxCreatedOrgs !== -1" icon class="mx-0" @click="showEditMaxCreatedOrgsDialog(props.item)">
-            <v-icon>edit</v-icon>
+            <v-icon>mdi-pencil</v-icon>
           </v-btn>
         </td>
         <template v-if="!env.readonly">
@@ -55,8 +58,11 @@
           <td>{{ props.item.updated && $d(new Date(props.item.updated.date)) }}</td>
           <td>{{ props.item.logged && $d(new Date(props.item.logged)) }}</td>
           <td class="justify-center layout px-0">
-            <v-btn icon class="mx-0" @click="currentUser = props.item;deleteUserDialog = true">
-              <v-icon color="warning">delete</v-icon>
+            <v-btn :title="$t('common.asAdmin')" icon class="mx-0" @click="asAdmin(props.item)">
+              <v-icon color="warning">mdi-account-switch</v-icon>
+            </v-btn>
+            <v-btn :title="$t('common.delete')" icon class="mx-0" @click="currentUser = props.item;deleteUserDialog = true">
+              <v-icon color="warning">mdi-delete</v-icon>
             </v-btn>
           </td>
         </template>
@@ -100,7 +106,7 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { mapState, mapActions } from 'vuex'
 import eventBus from '../../event-bus'
 export default {
   data: () => ({
@@ -109,7 +115,7 @@ export default {
     deleteUserDialog: false,
     editMaxCreatedOrgsDialog: false,
     q: '',
-    pagination: { page: 1, rowsPerPage: 25, totalItems: 0, descending: false, sortBy: 'email' },
+    pagination: { page: 1, rowsPerPage: 10, totalItems: 0, descending: false, sortBy: 'email' },
     loading: false,
     headers: null,
     newMaxCreatedOrgs: null,
@@ -131,6 +137,7 @@ export default {
   async mounted() {
     this.fetchUsers()
     this.headers = [
+      { text: this.$t('common.avatar'), sortable: false },
       { text: this.$t('common.email'), value: 'email' },
       { text: this.$t('common.id'), value: 'id', sortable: false },
       { text: this.$t('common.firstName'), value: 'firstName' },
@@ -150,6 +157,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('session', ['asAdmin']),
     async fetchUsers() {
       this.loading = true
       try {

@@ -56,14 +56,14 @@ module.exports = {
       error: 'FF5252', // red.accent2
       info: '#2196F3', // blue.base
       success: '#4CAF50', // green.base
-      warning: '#E91E63' // pink.base
+      warning: '#E91E63', // pink.base
+      admin: '#E53935' // red.darken1
     },
     cssUrl: null,
     cssText: ''
   },
   i18n: {
-    defaultLocale: 'fr',
-    locales: [{ code: 'fr', iso: 'fr-FR' }, { code: 'en', iso: 'es-US' }]
+    locales: ['fr', 'en']
   },
   mails: {
     from: 'no-reply@test.com',
@@ -98,7 +98,51 @@ module.exports = {
   secretKeys: {
     sendMails: null
   },
-  prebuilt: false,
   // A link to the terms of services for the site
-  tosUrl: null
+  tosUrl: null,
+  manageDepartments: false,
+  manageDepartmentLabel: false,
+  passwordless: true,
+  authRateLimit: {
+    attempts: 5,
+    duration: 60
+  },
+  // Example of oauth configuration
+  // oauth: [{
+  //   id: 'github',
+  //   icon: 'mdi-github',
+  //   title: 'GitHub',
+  //   color: '#4078c0',
+  //   scope: 'user:email'
+  //   state: '...' // just type random stuff
+  //   client: {
+  //     id: '...',
+  //     secret: '...'
+  //   },
+  //   auth: {
+  //     tokenHost: 'https://github.com',
+  //     tokenPath: '/login/oauth/access_token',
+  //     authorizePath: '/login/oauth/authorize'
+  //   }
+  // }]
+  oauth: {
+    providers: [],
+    statesDir: './security',
+    github: {
+      id: '',
+      secret: ''
+    },
+    facebook: {
+      id: '',
+      secret: ''
+    },
+    google: {
+      id: '',
+      secret: ''
+    },
+    linkedin: {
+      id: '',
+      secret: ''
+    }
+  }
 }

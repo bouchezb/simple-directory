@@ -1,5 +1,5 @@
 <template>
-  <v-app :dark="env.theme.dark" :class="appClass">
+  <v-app :dark="env.theme.dark" :class="appClass" data-iframe-height>
     <template v-if="localePath('login') === $route.path">
       <v-toolbar app fixed flat color="transparent">
         <v-spacer/>
@@ -13,7 +13,7 @@
           <!-- User-s profile page -->
           <v-list-tile v-if="user" :to="localePath('me')">
             <v-list-tile-action>
-              <v-icon>account_circle</v-icon>
+              <v-icon>mdi-account-circle</v-icon>
             </v-list-tile-action>
             <v-list-tile-title>{{ $t('common.myAccount') }}</v-list-tile-title>
           </v-list-tile>
@@ -21,7 +21,7 @@
           <!-- User's organizations pages (only admin) -->
           <v-list-tile v-for="orga in userDetails && userDetails.organizations" v-if="orga.role === 'admin'" :key="orga.id" :to="localePath({name: 'organization-id', params: {id: orga.id}})">
             <v-list-tile-action>
-              <v-icon>group</v-icon>
+              <v-icon>mdi-account-multiple</v-icon>
             </v-list-tile-action>
             <v-list-tile-title>{{ $t('common.organization') + ' ' + orga.name }}</v-list-tile-title>
           </v-list-tile>
@@ -29,7 +29,7 @@
           <!-- Create organization -->
           <v-list-tile v-if="!env.readonly && userDetails && (userDetails.maxCreatedOrgs || env.defaultMaxCreatedOrgs !== 0)" :to="localePath('create-organization')" color="accent">
             <v-list-tile-action>
-              <v-icon>add</v-icon>
+              <v-icon>mdi-plus</v-icon>
             </v-list-tile-action>
             <v-list-tile-title>
               {{ $t('common.createOrganization') }}
@@ -40,17 +40,17 @@
           <v-divider/>
 
           <!-- Administration pages -->
-          <v-list-group v-if="user && user.isAdmin" value="true">
-            <v-list-tile slot="activator">
+          <v-list-group v-if="user && user.adminMode" value="true">
+            <v-list-tile slot="activator" color="admin">
               <v-list-tile-action>
-                <v-icon>verified_user</v-icon>
+                <v-icon color="admin">mdi-shield-check</v-icon>
               </v-list-tile-action>
               <v-list-tile-title>{{ $t('common.administration') }}</v-list-tile-title>
             </v-list-tile>
-            <v-list-tile :to="localePath('admin-users')">
+            <v-list-tile :to="localePath('admin-users')" color="admin">
               <v-list-tile-title>{{ $t(`common.users`) }}</v-list-tile-title>
             </v-list-tile>
-            <v-list-tile :to="localePath('admin-organizations')">
+            <v-list-tile :to="localePath('admin-organizations')" color="admin">
               <v-list-tile-title>{{ $t(`common.organizations`) }}</v-list-tile-title>
             </v-list-tile>
           </v-list-group>
@@ -59,7 +59,7 @@
           <v-list-group v-if="!embed && docPages.length" value="true">
             <v-list-tile slot="activator">
               <v-list-tile-action>
-                <v-icon>help</v-icon>
+                <v-icon>mdi-help-circle</v-icon>
               </v-list-tile-action>
               <v-list-tile-title>{{ $t('common.documentation') }}</v-list-tile-title>
             </v-list-tile>
@@ -70,7 +70,7 @@
         </v-list>
       </v-navigation-drawer>
 
-      <v-toolbar v-if="showToolbar" app scroll-off-screen>
+      <v-toolbar v-if="showToolbar" :color="(user && user.adminMode) ? 'admin' : 'default'" :dark="user && user.adminMode" app scroll-off-screen>
         <v-toolbar-side-icon v-if="user" @click.stop="drawer = !drawer"/>
         <template v-if="localePath('index') !== $route.path">
           <div class="logo-container">
@@ -92,10 +92,19 @@
           {{ $t('common.logLink') }}
         </v-btn>
         <v-menu v-else-if="userDetails" offset-y>
-          <v-btn slot="activator" flat>{{ userDetails.name }}</v-btn>
+          <v-btn slot="activator" flat>{{ user.name }}</v-btn>
           <v-list>
             <v-list-tile @click="logout">
               <v-list-tile-title>{{ $t('common.logout') }}</v-list-tile-title>
+            </v-list-tile>
+            <v-list-tile v-if="user.asAdmin" @click="asAdmin()">
+              <v-list-tile-title>{{ $t('common.delAsAdmin') }}</v-list-tile-title>
+            </v-list-tile>
+            <v-list-tile v-if="user.isAdmin && !user.adminMode" color="admin" @click="setAdminMode(true)">
+              <v-list-tile-title>{{ $t('common.activateAdminMode') }}</v-list-tile-title>
+            </v-list-tile>
+            <v-list-tile v-if="user.isAdmin && user.adminMode" color="admin" @click="setAdminMode(false)">
+              <v-list-tile-title>{{ $t('common.deactivateAdminMode') }}</v-list-tile-title>
             </v-list-tile>
           </v-list>
         </v-menu>
@@ -114,7 +123,7 @@
           <p>{{ notification.msg }}</p>
           <p v-if="notification.errorMsg" class="ml-3">{{ notification.errorMsg }}</p>
         </div>
-        <v-btn flat icon @click.native="showSnackbar = false"><v-icon>close</v-icon></v-btn>
+        <v-btn flat icon @click.native="showSnackbar = false"><v-icon>mdi-close</v-icon></v-btn>
       </v-snackbar>
     </v-content>
     <v-footer v-if="!embed" class="pa-3">
@@ -178,7 +187,7 @@ export default {
       this.showSnackbar = true
     })
   },
-  methods: mapActions('session', ['logout', 'login'])
+  methods: mapActions('session', ['logout', 'login', 'setAdminMode', 'asAdmin'])
 }
 
 </script>
@@ -195,7 +204,7 @@ body .application {
     padding: 4px;
     margin-left: 4px !important;
     margin-right: 4px;
-
+    width: 64px;
     img, svg {
       height:100%;
     }

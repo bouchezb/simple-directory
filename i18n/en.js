@@ -11,6 +11,8 @@ module.exports = {
     logLink: 'login / sign up',
     logout: 'logout',
     login: 'login',
+    activateAdminMode: 'Activate admin mode',
+    deactivateAdminMode: 'Deactivate admin mode',
     documentation: 'Documentation',
     administration: 'Administration',
     myAccount: 'My account',
@@ -50,7 +52,14 @@ module.exports = {
     password: 'Password',
     checkInbox: 'Check your mail box',
     spamWarning: `If you didn't receive an email, check if it was classified as spam in your mail box.`,
-    validate: 'Validate'
+    validate: 'Validate',
+    department: 'Department',
+    departments: 'Departments',
+    autoAdmin: `Automatically add me as admin`,
+    asAdmin: 'Log as this user',
+    delAsAdmin: 'Get back to your normal session',
+    avatar: 'Avatar',
+    birthday: 'Birthday'
   },
   doc: {
     about: {
@@ -129,20 +138,18 @@ Can be 'anonymous', 'authenticated' or 'admin'.`,
       changePassword: 'Renew the password.',
       changePasswordTooltip: `In case you forgot your password or if you need to change it, renew your password.`,
       newPasswordMsg: `Type twice the new password.`,
-      changePasswordConfirmed: `
-<p>The password associated with your account has been modified.</p>
-<p class="caption">You can login using the new password.</p>
-      `,
       changePasswordSent: `An email was sent to the address {email}. This email contains a link to change the password of your account.`,
-      passwordlessMsg1: `To connect to our platform an email is sufficient.`,
+      passwordlessMsg1: `To login an email is sufficient.`,
       passwordlessMsg2: `Send a login email.`,
       passwordlessConfirmed: `An email was sent to the address {email}. This email contains a link to connect to the platform.`,
       createUserMsg1: `If you didn't already connect to our platform you must create an account.`,
       createUserMsg2: `Create an account.`,
-      tosMsg: `Before creating an account please read <a href="{tosUrl}">our terms of services</a>.`,
+      tosMsg: `Before creating an account please read <a href="{tosUrl}" target="_blank">our terms of services</a>.`,
       tosConfirm: `I confirm that I have read the terms of services for this site.`,
       createUserConfirm: 'Create the account',
-      createUserConfirmed: `An email was sent to the address {email}. This email contains a link to validate the creation of your account.`
+      createUserConfirmed: `An email was sent to the address {email}. This email contains a link to validate the creation of your account.`,
+      adminMode: 'Confirm your identity to switch to admin mode.',
+      oauth: 'Connect with:'
     },
     organization: {
       addMember: 'Invite a user to join this organization',
@@ -154,19 +161,25 @@ Can be 'anonymous', 'authenticated' or 'admin'.`,
       deleteMemberSuccess: 'The user {name} was excluded from the organization',
       inviteEmail: `Email address of the user`,
       inviteSuccess: `An invitation was sent to the address {email}`,
+      memberConflict: 'This user is already a member',
       back: 'Back',
-      next: 'Next'
+      next: 'Next',
+      departmentIdInvalid: 'Identifier should contain anly letters, numbers and spaces'
     },
     invitation: {
       title: 'Invitation validated',
       msgSameUser: `Your invitation to become member of an organization has been validated. You can visit <a href="{profileUrl}">your profile</a>.`,
       msgDifferentUser: `This invitation to become member of an organization has been validated. You can <a href="{loginUrl}">login with</a> the invited account.`
+    },
+    avatar: {
+      prepare: `Prepare the image`
     }
   },
   errors: {
     badEmail: 'Email address is empty or malformed.',
     maxCreatedOrgs: `The user cannot create more organizations. Limit attained.`,
     permissionDenied: 'Insufficient permissions.',
+    nonEmptyOrganization: `You must remove other members from this organization`,
     userUnknown: 'Unknown user.',
     orgaUnknown: 'Unknown organization.',
     invitationConflict: 'This user is lready member of the organization.',
@@ -174,7 +187,9 @@ Can be 'anonymous', 'authenticated' or 'admin'.`,
     serviceUnavailable: 'Service unavailable because of maintenance.',
     badCredentials: `Email address or password invalid.`,
     invalidToken: `The token is not valid. Maybe it is expired.`,
-    malformedPassword: 'The password should be at least 8 characters long and contain at least on number and one uppercase character.'
+    malformedPassword: 'The password should be at least 8 characters long and contain at least one number and one uppercase character.',
+    noPasswordless: `Passordless authentication is not accepted by this service.`,
+    rateLimitAuth: `Too many attemps in a short interval. Please wait before trying again.`
   },
   mails: {
     creation: {

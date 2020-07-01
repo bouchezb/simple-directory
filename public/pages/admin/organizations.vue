@@ -13,7 +13,7 @@
         name="search"
         solo
         style="max-width:300px;"
-        append-icon="search"
+        append-icon="mdi-magnify"
         @click:append="fetchOrganizations"
         @keyup.enter="fetchOrganizations"/>
     </v-layout>
@@ -31,6 +31,9 @@
       rows-per-page-text=""
     >
       <template slot="items" slot-scope="props">
+        <td>
+          <v-avatar :size="40"><img :src="env.publicUrl + '/api/avatars/organization/' + props.item.id + '/avatar.png'"></v-avatar>
+        </td>
         <td>{{ props.item.name }}</td>
         <td>{{ props.item.id }}</td>
         <td>{{ props.item.description }}</td>
@@ -39,10 +42,10 @@
           <td>{{ props.item.updated && $d(new Date(props.item.updated.date)) }}</td>
           <td class="justify-center layout px-0">
             <v-btn :to="localePath({name: 'organization-id', params: {id: props.item.id}})" icon class="mx-0">
-              <v-icon>edit</v-icon>
+              <v-icon>mdi-pencil</v-icon>
             </v-btn>
             <v-btn icon class="mx-0" @click="currentOrganization = props.item;deleteOrganizationDialog = true">
-              <v-icon color="warning">delete</v-icon>
+              <v-icon color="warning">mdi-delete</v-icon>
             </v-btn>
           </td>
         </template>
@@ -76,7 +79,7 @@ export default {
     currentOrganization: null,
     deleteOrganizationDialog: false,
     q: '',
-    pagination: { page: 1, rowsPerPage: 25, totalItems: 0, descending: false, sortBy: 'name' },
+    pagination: { page: 1, rowsPerPage: 10, totalItems: 0, descending: false, sortBy: 'name' },
     loading: false,
     headers: null
   }),
@@ -96,6 +99,7 @@ export default {
   async mounted() {
     this.fetchOrganizations()
     this.headers = [
+      { text: this.$t('common.avatar'), sortable: false },
       { text: this.$t('common.name'), value: 'name' },
       { text: this.$t('common.id'), value: 'id', sortable: false },
       { text: this.$t('common.description'), value: 'description', sortable: false }

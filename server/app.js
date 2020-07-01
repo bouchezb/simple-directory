@@ -1,7 +1,6 @@
 const config = require('config')
 const express = require('express')
 const cookieParser = require('cookie-parser')
-const cors = require('cors')
 const bodyParser = require('body-parser')
 const http = require('http')
 const util = require('util')
@@ -21,7 +20,7 @@ const i18n = require('../i18n')
 const app = express()
 const server = http.createServer(app)
 
-app.use(cors())
+app.use(session.cors({}))
 app.use(cookieParser())
 app.use(bodyParser.json({ limit: '100kb' }))
 app.use(i18n.middleware)
@@ -33,7 +32,11 @@ app.use((req, res, next) => {
 // Replaces req.user from session with full and fresh user object from storage
 const fullUser = asyncWrap(async (req, res, next) => {
   if (!req.user) return next()
-  req.user = { ...await req.app.get('storage').getUser({ id: req.user.id }), isAdmin: req.user.isAdmin }
+  req.user = {
+    ...await req.app.get('storage').getUser({ id: req.user.id }),
+    isAdmin: req.user.isAdmin,
+    adminMode: req.user.adminMode
+  }
   next()
 })
 
@@ -44,6 +47,7 @@ app.use('/api/mails', require('./routers/mails'))
 app.use('/api/users', session.auth, fullUser, require('./routers/users'))
 app.use('/api/organizations', session.auth, fullUser, require('./routers/organizations'))
 app.use('/api/invitations', session.auth, fullUser, require('./routers/invitations'))
+app.use('/api/avatars', session.auth, fullUser, require('./routers/avatars'))
 app.use('/api/session', session.router)
 
 app.use((err, req, res, next) => {
